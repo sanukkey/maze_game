@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>LABYRINTH & SHOOTER - ODYSSEY</title>
+<!-- 宇宙っぽさとゲームっぽさを出すためのフォント -->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #000;
+    color: white;
+    font-family: 'Orbitron', sans-serif;
+  }
+  canvas {
+    display: block;
+    margin: 0 auto;
+  }
+  
+  /* タイトル用UI */
+  #titleScreen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  }
+  #titleScreen h1 {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 32px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #ffd700;
+    line-height: 1.5;
+    text-shadow: 4px 4px 0px #e74c3c, -2px -2px 0px #3498db;
+  }
+  #titleScreen p {
+    font-size: 20px;
+    margin-bottom: 40px;
+    color: #a0d8ef;
+    text-align: center;
+    letter-spacing: 2px;
+  }
+  #startBtn {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 20px;
+    padding: 20px 50px;
+    border: 3px solid #ffd700;
+    border-radius: 5px;
+    background: transparent;
+    color: #ffd700;
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5), inset 0 0 15px rgba(255, 215, 0, 0.5);
+    transition: all 0.2s;
+  }
+  #startBtn:active {
+    transform: scale(0.95);
+    background: #ffd700;
+    color: #000;
+  }
+
+  /* 迷路用UI */
+  #stageText {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    font-size: 24px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 5px #000, 2px 2px 0 #e74c3c;
+    pointer-events: none;
+    display: none;
+    letter-spacing: 2px;
+  }
+  
+  /* シューティング用UI */
+  #scoreBoard {
+    position: absolute;
+    top: 15px;
+    left: 20px;
+    font-size: 28px;
+    font-weight: 900;
+    color: #00ffff;
+    text-shadow: 2px 2px 0 #000, 0 0 10px #00ffff;
+    display: none;
+    pointer-events: none;
+    font-family: 'Press Start 2P', cursive;
+  }
+  #shootBtn {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: rgba(41, 128, 185, 0.5);
+    color: white;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    border: 3px solid #00ffff;
+    pointer-events: auto;
+    user-select: none;
+    touch-action: manipulation;
+    box-shadow: 0 0 20px rgba(0,255,255,0.5), inset 0 0 10px rgba(0,255,255,0.5);
+    display: none; 
+    z-index: 10;
+  }
+  #shootBtn:active {
+    background: rgba(0, 255, 255, 0.8);
+    transform: scale(0.95);
+    color: #000;
+  }
+
+  /* ボス用HP表示 */
+  #bossHpContainer {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 200px;
+    height: 20px;
+    border: 3px solid #e74c3c;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    z-index: 10;
+  }
+  #bossHpBar {
+    width: 100%;
+    height: 100%;
+    background: #e74c3c;
+    box-shadow: 0 0 10px #e74c3c;
+    transition: width 0.1s;
+  }
+  
+  /* 共通メッセージオーバーレイ */
+  #overlayText {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #fff;
+    color: #fff;
+    padding: 30px 50px;
+    border-radius: 10px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 20px;
+    text-align: center;
+    pointer-events: none;
+    white-space: pre-wrap; 
+    transition: opacity 0.5s;
+    opacity: 0;
+    display: none;
+    line-height: 1.8;
+    z-index: 30;
+    box-shadow: 0 0 30px rgba(255,255,255,0.5);
+  }
+
+  /* エンディング用ロールテキスト */
+  #endingScreen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 100;
+    overflow: hidden;
+    display: none;
+  }
+  #creditsBox {
+    position: absolute;
+    top: 100%;
+    text-align: center;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 16px;
+    line-height: 3;
+    color: #ffd700;
+    text-shadow: 0 0 5px #ffd700;
+  }
+</style>
+</head>
+<body>
+
+<div id="titleScreen">
+  <h1>LABYRINTH<br>SHOOTER</h1>
+  <p>一筆書きの迷路を踏破し<br>巨大宇宙戦艦を打ち破れ！</p>
+  <button id="startBtn">ゲームスタート</button>
+</div>
+
+<div id="stageText">ステージ 1</div>
+<div id="scoreBoard">00000</div>
+<div id="bossHpContainer"><div id="bossHpBar"></div></div>
+<button id="shootBtn">発射</button>
+<div id="overlayText"></div>
+
+<div id="endingScreen">
+  <div id="creditsBox"></div>
+</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let gameState = "title"; 
+let loopCount = 0; 
+
+// ==========================================
+// ユーティリティ
+// ==========================================
+function showOverlay(text, duration=1000) {
+  const el = document.getElementById("overlayText");
+  el.innerText = text;
+  el.style.display = "block";
+  void el.offsetWidth; 
+  el.style.opacity = 1;
+  
+  clearTimeout(overlayTimeout1);
+  clearTimeout(overlayTimeout2);
+
+  if (duration !== 999999) {
+    overlayTimeout1 = setTimeout(() => {
+      el.style.opacity = 0;
+      overlayTimeout2 = setTimeout(() => { el.style.display = "none"; }, 500);
+    }, duration);
+  }
+}
+
+function showPraise(text) {
+  const praises = ["すごい！", "ナイス！", "完璧！", "天才！", "お見事！"];
+  const random = praises[Math.floor(Math.random() * praises.length)];
+  showOverlay(random + "\n\n" + text, 1500);
+}
+
+let overlayTimeout1, overlayTimeout2;
+
+// ==========================================
+// 迷路ゲーム（完璧な一筆書きダンジョン）
+// ==========================================
+let stageIndex = 0;
+let maze, mazePlayer, goal, checkpoints;
+let currentStep = 0;
+let cellSize;
+let isMazeTransitioning = false;
+
+// DFSアルゴリズムによる「ループのない完璧な迷路」の生成
+function generatePerfectMaze(rows, cols) {
+  let m = Array.from({length: rows}, () => Array(cols).fill(1));
+  function carve(r, c) {
+    m[r][c] = 0;
+    let dirs = [[-2,0],[2,0],[0,-2],[0,2]].sort(() => Math.random() - 0.5);
+    for (let [dr, dc] of dirs) {
+      let nr = r + dr, nc = c + dc;
+      if (nr > 0 && nr < rows-1 && nc > 0 && nc < cols-1 && m[nr][nc] === 1) {
+        m[r + dr/2][c + dc/2] = 0;
+        carve(nr, nc);
+      }
+    }
+  }
+  carve(1, 1);
+  return m;
+}
+
+// 唯一の正解ルートをBFSで割り出す関数
+function findSolutionPath(m, start, end) {
+  let queue = [[{...start}]];
+  let visited = new Set();
+  visited.add(`${start.y},${start.x}`);
+  let dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+  
+  while(queue.length > 0) {
+    let path = queue.shift();
+    let current = path[path.length - 1];
+    
+    if (current.x === end.x && current.y === end.y) {
+      return path;
+    }
+    
+    for (let [dx, dy] of dirs) {
+      let nx = current.x + dx;
+      let ny = current.y + dy;
+      if (m[ny] && m[ny][nx] === 0 && !visited.has(`${ny},${nx}`)) {
+        visited.add(`${ny},${nx}`);
+        queue.push([...path, {x: nx, y: ny}]);
+      }
+    }
+  }
+  return [];
+}
+
+function loadStage() {
+  document.getElementById("bossHpContainer").style.display = "none";
+  
+  let baseSizes = [9, 13, 17, 21, 27, 11, 15, 19, 25, 31];
+  let chestsPerStage = [0, 1, 2, 3, 4, 1, 2, 3, 4, 5];
+  
+  let size = baseSizes[stageIndex] || 31;
+  
+  maze = generatePerfectMaze(size, size);
+  mazePlayer = {x: 1, y: 1};
+
+  // ゴールを最も遠い行き止まりに設定する（BFS）
+  let queue = [{x: 1, y: 1, dist: 0}];
+  let visited = Array.from({length: size}, () => Array(size).fill(false));
+  visited[1][1] = true;
+  let furthest = {x: 1, y: 1, dist: 0};
+  let dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+  
+  while(queue.length > 0) {
+    let curr = queue.shift();
+    if (curr.dist > furthest.dist) {
+      furthest = curr;
+    }
+    for (let [dx, dy] of dirs) {
+      let nx = curr.x + dx, ny = curr.y + dy;
+      if (maze[ny] && maze[ny][nx] === 0 && !visited[ny][nx]) {
+        visited[ny][nx] = true;
+        queue.push({x: nx, y: ny, dist: curr.dist + 1});
+      }
+    }
+  }
+  
+  goal = {x: furthest.x, y: furthest.y};
+
+  let numChests = chestsPerStage[stageIndex] || 0;
+  checkpoints = [];
+
+  // その他の行き止まり（周囲3方向が壁）を全て探す
+  let deadEnds = [];
+  for (let y = 1; y < maze.length - 1; y++) {
+    for (let x = 1; x < maze[0].length - 1; x++) {
+      if (maze[y][x] === 0) {
+        if (x === mazePlayer.x && y === mazePlayer.y) continue;
+        if (x === goal.x && y === goal.y) continue;
+
+        let walls = 0;
+        if (maze[y-1][x] === 1) walls++;
+        if (maze[y+1][x] === 1) walls++;
+        if (maze[y][x-1] === 1) walls++;
+        if (maze[y][x+1] === 1) walls++;
+        if (walls >= 3) {
+          deadEnds.push({x, y});
+        }
+      }
+    }
+  }
+
+  // 宝箱を行き止まりにランダム配置
+  if (numChests > 0) {
+    deadEnds.sort(() => Math.random() - 0.5); // シャッフル
+    for (let i = 0; i < numChests; i++) {
+        if (deadEnds[i]) {
+            checkpoints.push({x: deadEnds[i].x, y: deadEnds[i].y, num: i + 1});
+        } else {
+            // 行き止まりが足りない場合のフォールバック
+            let path = findSolutionPath(maze, mazePlayer, goal);
+            if(path.length > (i+1)*2) checkpoints.push({x: path[(i+1)*2].x, y: path[(i+1)*2].y, num: i + 1});
+        }
+    }
+  }
+
+  currentStep = 0;
+  isMazeTransitioning = false;
+  
+  document.getElementById("stageText").innerText = "ステージ " + (stageIndex + 1);
+  calcMazeSize();
+}
+
+function calcMazeSize() {
+  if (gameState !== "maze") return;
+  const rows = maze.length;
+  const cols = maze[0].length;
+  cellSize = Math.floor(Math.min(window.innerWidth / cols, (window.innerHeight - 50) / rows));
+  canvas.width = cellSize * cols;
+  canvas.height = cellSize * rows;
+  canvas.style.marginTop = Math.max(0, (window.innerHeight - canvas.height) / 2) + 'px';
+}
+
+function drawChest(px, py, isCollected) {
+  const x = px * cellSize;
+  const y = py * cellSize;
+  const s = cellSize;
+  
+  ctx.save();
+  ctx.translate(x + s/2, y + s/2);
+  
+  let num = checkpoints.find(c => c.x === px && c.y === py).num;
+
+  if (isCollected) {
+    // 開いた宝箱
+    ctx.fillStyle = "#7f8c8d";
+    ctx.fillRect(-s*0.35, -s*0.2, s*0.7, s*0.4);
+    ctx.fillStyle = "#222"; 
+    ctx.fillRect(-s*0.3, -s*0.2, s*0.6, s*0.15);
+  } else {
+    // 宝箱本体（錠/宝箱）
+    ctx.fillStyle = "#d35400";
+    ctx.fillRect(-s*0.4, -s*0.3, s*0.8, s*0.6);
+    
+    // 金枠
+    ctx.strokeStyle = "#f1c40f";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-s*0.4, -s*0.3, s*0.8, s*0.6);
+    
+    // 鍵穴ではなく数字を表示！
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold " + (s*0.4) + "px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(num, 0, 0);
+  }
+  
+  ctx.restore();
+}
+
+function drawMaze() {
+  // ダンジョンのような暗い背景
+  ctx.fillStyle = "#0c0c0c";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // 壁と道の描画
+  for (let y = 0; y < maze.length; y++) {
+    for (let x = 0; x < maze[0].length; x++) {
+      if (maze[y][x] === 1) {
+        // 壁（石造りのブロックのような表現）
+        ctx.fillStyle = "#2c3e50";
+        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        ctx.fillStyle = "#34495e";
+        ctx.fillRect(x * cellSize + 1, y * cellSize + 1, cellSize - 2, cellSize - 2);
+      } else {
+        // 道（かすかに明るい床）
+        ctx.fillStyle = "#111";
+        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+      }
+    }
+  }
+
+  // ゴール（魔法陣のような光るエフェクト）
+  let time = Date.now() / 300;
+  ctx.save();
+  ctx.translate(goal.x * cellSize + cellSize/2, goal.y * cellSize + cellSize/2);
+  ctx.rotate(time);
+  ctx.fillStyle = `rgba(0, 255, 255, ${0.5 + Math.sin(time)*0.3})`;
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = "#00ffff";
+  ctx.fillRect(-cellSize*0.3, -cellSize*0.3, cellSize*0.6, cellSize*0.6);
+  ctx.rotate(-time * 2);
+  ctx.fillStyle = "#00ffff";
+  ctx.fillRect(-cellSize*0.2, -cellSize*0.2, cellSize*0.4, cellSize*0.4);
+  ctx.restore();
+
+  // 宝箱（チェックポイント）
+  checkpoints.forEach(p => {
+    let collected = (p.num <= currentStep);
+    drawChest(p.x, p.y, collected);
+  });
+
+  // プレイヤー（パイロットのヘルメットとスーツ風）
+  ctx.save();
+  ctx.translate(mazePlayer.x * cellSize + cellSize/2, mazePlayer.y * cellSize + cellSize/2);
+  
+  // ヘルメット（白）
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(0, 0, cellSize*0.35, Math.PI, 0);
+  ctx.fill();
+  
+  // バイザー（水色・光沢）
+  ctx.fillStyle = "#3498db";
+  ctx.fillRect(-cellSize*0.25, -cellSize*0.25, cellSize*0.5, cellSize*0.15);
+  
+  // パイロットスーツ（オレンジ）
+  ctx.fillStyle = "#e67e22";
+  ctx.beginPath();
+  ctx.arc(0, cellSize*0.1, cellSize*0.35, 0, Math.PI);
+  ctx.fill();
+  
+  ctx.restore();
+}
+
+function moveMaze(dx, dy) {
+  if (isMazeTransitioning) return;
+
+  const nx = mazePlayer.x + dx;
+  const ny = mazePlayer.y + dy;
+
+  if (maze[ny] && maze[ny][nx] === 0) {
+    // 宝箱のチェック
+    let chest = checkpoints.find(p => p.x === nx && p.y === ny);
+    if (chest) {
+      if (chest.num === currentStep + 1) {
+        currentStep++;
+        shake = 5; 
+        mazePlayer.x = nx;
+        mazePlayer.y = ny;
+      } else if (chest.num > currentStep + 1) {
+        showOverlay(`ちがうよ！\nまずは ${currentStep + 1} 番の宝箱を取ろう！`, 1000);
+      } else {
+        // すでに取った箱の上は歩ける
+        mazePlayer.x = nx;
+        mazePlayer.y = ny;
+      }
+    } else if (nx === goal.x && ny === goal.y) {
+      // ゴール到達判定
+      if (currentStep === checkpoints.length) {
+        mazePlayer.x = nx;
+        mazePlayer.y = ny;
+        isMazeTransitioning = true;
+        stageIndex++;
+
+        if (stageIndex === 5 && loopCount === 0) {
+          showOverlay("警告！\n敵領域に侵入！\n戦闘開始！", 2500);
+          setTimeout(() => { startShooterGame(); }, 2500);
+          return;
+        }
+
+        if (stageIndex === 10) {
+          showOverlay("警告！\n巨大戦艦反応！\n最終決戦！", 3000);
+          setTimeout(() => { startShooterGame(); }, 3000);
+          return;
+        }
+
+        showPraise(`ステージ ${stageIndex} クリア！`);
+        setTimeout(() => { loadStage(); }, 1500);
+        return;
+      } else {
+        showOverlay("すべての宝箱を順番に回収しないと\n魔法陣は作動しないよ！", 1500);
+      }
+    } else {
+      // 普通の床
+      mazePlayer.x = nx;
+      mazePlayer.y = ny;
+    }
+  }
+}
+
+// ==========================================
+// 横スクロールシューティング
+// ==========================================
+let shPlayer, shBullets, shEnemies, shEnemyBullets, shExplosions, shStars;
+let shScore, shBaseSpeed;
+let isGameOver = false;
+
+// コンボ＆射撃
+let combo = 0;
+let comboTimer = 0;
+let isShooting = false;
+let shootTimer = 0;
+
+// 画面揺れ演出
+let shake = 0;
+
+// ボス戦フラグ
+let boss;
+let isBossFight = false;
+let endingTimer = 0;
+
+document.getElementById("startBtn").addEventListener("click", () => {
+  document.getElementById("titleScreen").style.display = "none";
+  document.getElementById("stageText").style.display = "block";
+  gameState = "maze";
+  stageIndex = 0;
+  loopCount = 0;
+  loadStage();
+});
+
+function drawSpaceship(x, y, w, h, isPlayer) {
+  ctx.save();
+  ctx.translate(x, y);
+  if (isPlayer) {
+    // 完全にグラディウスの自機（ビックバイパー）を模したデザイン
+    // 中心ボディ
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.moveTo(w/2, 0); // 先端
+    ctx.lineTo(w/4, -h/6);
+    ctx.lineTo(-w/2, -h/4);
+    ctx.lineTo(-w/2, h/4);
+    ctx.lineTo(w/4, h/6);
+    ctx.fill();
+
+    // 機体後部のエンジン部分
+    ctx.fillStyle = "#34495e";
+    ctx.fillRect(-w/2, -h/6, w/6, h/3);
+
+    // 上下のプロング（前方に伸びる2本のアーム）
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(-w/6, -h/2.5, w/1.5, h/8); 
+    ctx.fillRect(-w/6, h/2.5 - h/8, w/1.5, h/8);
+    // 先端の青い部分（レーザー口）
+    ctx.fillStyle = "#3498db";
+    ctx.fillRect(w/2 - w/6, -h/2.5, w/6, h/8);
+    ctx.fillRect(w/2 - w/6, h/2.5 - h/8, w/6, h/8);
+
+    // キャノピー（青いコックピット窓）
+    ctx.fillStyle = "#3498db";
+    ctx.beginPath();
+    ctx.ellipse(0, -h/8, w/5, h/8, 0, 0, Math.PI*2);
+    ctx.fill();
+    // キャノピーのハイライト
+    ctx.fillStyle = "#a0d8ef";
+    ctx.beginPath();
+    ctx.ellipse(-w/10, -h/6, w/10, h/16, 0, 0, Math.PI*2);
+    ctx.fill();
+    
+    // エンジン炎
+    ctx.fillStyle = "#3498db"; // グラディウスの基本設定に合わせた青い炎
+    ctx.beginPath();
+    ctx.moveTo(-w/2, -h/8);
+    ctx.lineTo(-w/2 - Math.random()*20 - 15, 0);
+    ctx.lineTo(-w/2, h/8);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function startShooterGame() {
+  gameState = "shooter";
+  isGameOver = false;
+  isBossFight = false;
+  boss = null;
+
+  document.getElementById("stageText").style.display = "none";
+  document.getElementById("scoreBoard").style.display = "block";
+  document.getElementById("bossHpContainer").style.display = "none";
+  document.getElementById("shootBtn").style.display = "block";
+
+  calcShooterSize();
+
+  shPlayer = { 
+    x: 100, 
+    y: canvas.height / 2, 
+    width: 50, 
+    height: 40,
+    vx: 0,
+    vy: 0
+  };
+  shBullets = [];
+  shEnemies = [];
+  shEnemyBullets = [];
+  shExplosions = [];
+  shScore = 0;
+  shBaseSpeed = 3;
+  combo = 0;
+  comboTimer = 0;
+  shake = 0;
+  
+  updateScoreDisplay();
+
+  shStars = [];
+  for (let i = 0; i < 150; i++) {
+    shStars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      speed: Math.random() * 4 + 1,
+      size: Math.random() * 2 + 0.5,
+      color: Math.random() > 0.8 ? "#a0d8ef" : "#fff"
+    });
+  }
+}
+
+function updateScoreDisplay() {
+  let s = shScore.toString().padStart(5, '0');
+  document.getElementById("scoreBoard").innerText = s;
+}
+
+function calcShooterSize() {
+  if (gameState !== "shooter") return;
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  canvas.style.marginTop = "0px";
+}
+
+function spawnBoss() {
+  isBossFight = true;
+  boss = {
+    x: canvas.width + 100,
+    y: canvas.height / 2,
+    width: 150,
+    height: 250,
+    hp: 500,
+    maxHp: 500,
+    vy: 2,
+    tick: 0
+  };
+  document.getElementById("bossHpContainer").style.display = "block";
+  showOverlay("WARNING!\nGIANT BATTLESHIP APPROACHING!", 3000);
+}
+
+function updateBoss() {
+  // ボス登場演出
+  if (boss.x > canvas.width - 150) {
+    boss.x -= 2;
+  } else {
+    // 上下移動
+    boss.y += boss.vy;
+    if (boss.y < 150 || boss.y > canvas.height - 150) boss.vy *= -1;
+    
+    // 拡散弾の発射！ (6方向)
+    boss.tick++;
+    if (boss.tick % 80 === 0) {
+      for (let i = 0; i < 6; i++) {
+        let angle = Math.PI - 0.5 + (i * 0.2); // 左方向へ扇状に
+        let speed = 6;
+        shEnemyBullets.push({
+          x: boss.x - boss.width/2,
+          y: boss.y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: 8,
+          color: "#e74c3c"
+        });
+      }
+    }
+  }
+
+  // HPバーの更新
+  const hpBar = document.getElementById("bossHpBar");
+  hpBar.style.width = Math.max(0, (boss.hp / boss.maxHp) * 100) + "%";
+
+  // ボス撃破判定
+  if (boss.hp <= 0) {
+    shScore += 5000;
+    updateScoreDisplay();
+    isGameOver = true;
+    shake = 30; // 大揺れ
+    
+    // ボスから大量の爆発
+    for(let i=0; i<20; i++){
+      shExplosions.push({
+        x: boss.x + (Math.random()-0.5)*150,
+        y: boss.y + (Math.random()-0.5)*250,
+        radius: Math.random()*30+10,
+        speed: 2, life: 1.5, color: "#fff"
+      });
+    }
+    boss = null;
+    document.getElementById("bossHpContainer").style.display = "none";
+    document.getElementById("shootBtn").style.display = "none";
+    
+    // エンディングへ
+    setTimeout(() => {
+      gameState = "ending";
+      endingTimer = 0;
+      startEndingRoll();
+    }, 3000);
+  }
+}
+
+function updateShooter() {
+  if (isGameOver) return; 
+
+  shPlayer.x += shPlayer.vx;
+  shPlayer.y += shPlayer.vy;
+  shPlayer.vx *= 0.8;
+  shPlayer.vy *= 0.8;
+
+  if (shPlayer.x < shPlayer.width/2) { shPlayer.x = shPlayer.width/2; shPlayer.vx = 0; }
+  if (shPlayer.x > canvas.width - shPlayer.width/2) { shPlayer.x = canvas.width - shPlayer.width/2; shPlayer.vx = 0; }
+  if (shPlayer.y < shPlayer.height/2) { shPlayer.y = shPlayer.height/2; shPlayer.vy = 0; }
+  if (shPlayer.y > canvas.height - shPlayer.height/2) { shPlayer.y = canvas.height - shPlayer.height/2; shPlayer.vy = 0; }
+
+  // ----- 連射処理 -----
+  if (isShooting && shootTimer <= 0) {
+    shBullets.push({
+      x: shPlayer.x + shPlayer.width/2,
+      y: shPlayer.y,
+      radius: 6, speed: 20, color: "#00ffff"
+    });
+    shootTimer = 6; 
+  }
+  if (shootTimer > 0) shootTimer--;
+
+  // ----- コンボタイマー -----
+  if (comboTimer > 0) comboTimer--;
+  else combo = 0;
+
+  // ----- 背景の星 -----
+  shStars.forEach(s => {
+    s.x -= s.speed * (isBossFight ? 3 : 1); // ボス戦は背景が速くなる
+    if (s.x < 0) {
+      s.x = canvas.width + 10;
+      s.y = Math.random() * canvas.height; 
+    }
+  });
+
+  // ----- ボス・敵の処理 -----
+  if (!isBossFight && shScore >= 1000) {
+    spawnBoss();
+  }
+
+  if (isBossFight && boss) {
+    updateBoss();
+  } else if (!isBossFight) {
+    // ザコ敵スポーン
+    // 初期2倍キャップ
+    shBaseSpeed = Math.min(3 + (shScore * 0.05), 6); 
+    let spawnRate = Math.min(0.02 + (shScore * 0.001), 0.08);
+
+    if (Math.random() < spawnRate) {
+      let type = Math.floor(Math.random() * 3); // 0:高速, 1:波, 2:硬い重戦車
+      let sy = Math.random() * (canvas.height - 60) + 30;
+      let enemy = {
+        x: canvas.width + 40,
+        y: sy,
+        startY: sy,
+        tick: 0,
+        type: type,
+      };
+
+      if (type === 0) {
+        // 高速UFO（シアン小）
+        enemy.width = 30; enemy.height = 30;
+        enemy.hp = 1; enemy.maxHp = 1; enemy.color = "#00ffff";
+        enemy.speed = shBaseSpeed * 1.5;
+      } else if (type === 1) {
+        // 蛇行UFO（パープル）
+        enemy.width = 40; enemy.height = 40;
+        enemy.hp = 2; enemy.maxHp = 2; enemy.color = "#9b59b6";
+        enemy.speed = shBaseSpeed * 0.8;
+      } else {
+        // 激硬戦車（オレンジ大）
+        enemy.width = 60; enemy.height = 60;
+        enemy.hp = 5; enemy.maxHp = 5; enemy.color = "#e67e22";
+        enemy.speed = shBaseSpeed * 0.5;
+      }
+      shEnemies.push(enemy);
+    }
+  }
+
+  shBullets.forEach(b => b.x += b.speed);
+  shBullets = shBullets.filter(b => b.x < canvas.width + 20);
+
+  shEnemyBullets.forEach(b => {
+    b.x += b.vx;
+    b.y += b.vy;
+  });
+  shEnemyBullets = shEnemyBullets.filter(b => b.x > -20 && b.y > -20 && b.y < canvas.height + 20);
+
+  // 敵の移動処理
+  shEnemies.forEach(e => {
+    e.x -= e.speed;
+    e.tick++;
+    if (e.type === 1) { // 蛇行
+      e.y = e.startY + Math.sin(e.tick * 0.1) * 50;
+    }
+    
+    // たまに弾を撃つ
+    if (Math.random() < 0.001) {
+      let dx = shPlayer.x - e.x;
+      let dy = shPlayer.y - e.y;
+      let dist = Math.sqrt(dx*dx + dy*dy);
+      shEnemyBullets.push({
+        x: e.x, y: e.y,
+        vx: (dx/dist)*5, vy: (dy/dist)*5,
+        radius: 4, color: "#f1c40f"
+      });
+    }
+  });
+
+  shEnemies = shEnemies.filter(e => e.x > -100);
+
+  // ----- プレイヤー弾の命中判定 -----
+  for (let j = shBullets.length - 1; j >= 0; j--) {
+    let bullet = shBullets[j];
+    let bulletHit = false;
+
+    // vs ザコ敵
+    for (let i = shEnemies.length - 1; i >= 0; i--) {
+      let enemy = shEnemies[i];
+      if (
+        bullet.x > enemy.x - enemy.width/2 &&
+        bullet.x < enemy.x + enemy.width/2 &&
+        bullet.y > enemy.y - enemy.height/2 &&
+        bullet.y < enemy.y + enemy.height/2
+      ) {
+        bulletHit = true;
+        enemy.hp--;
+        
+        if (enemy.hp <= 0) {
+          // 撃破
+          shScore += (enemy.type + 1) * 10;
+          updateScoreDisplay();
+          shake = 5; 
+          combo++;
+          comboTimer = 60; 
+          if (combo >= 5) showOverlay(`+${(enemy.type+1)*10}\n${combo} COMBOS!`, 400);
+
+          shExplosions.push({
+            x: enemy.x, y: enemy.y, radius: enemy.width/2, speed: 2, life: 1.0, color: enemy.color
+          });
+          shEnemies.splice(i, 1);
+        } else {
+          // 被弾エフェクト
+          shExplosions.push({
+            x: bullet.x, y: bullet.y, radius: 5, speed: 1, life: 0.5, color: "#fff"
+          });
+        }
+        break; 
+      }
+    }
+
+    // vs ボス
+    if (!bulletHit && isBossFight && boss) {
+      if (
+        bullet.x > boss.x - boss.width/2 &&
+        bullet.x < boss.x + boss.width/2 &&
+        bullet.y > boss.y - boss.height/2 &&
+        bullet.y < boss.y + boss.height/2
+      ) {
+        bulletHit = true;
+        boss.hp--;
+        shExplosions.push({
+          x: bullet.x, y: bullet.y, radius: 8, speed: 1, life: 0.8, color: "#e74c3c"
+        });
+      }
+    }
+
+    if (bulletHit) shBullets.splice(j, 1);
+  }
+
+  // ----- プレイヤーの被弾判定 -----
+  // 敵の体当たり
+  shEnemies.forEach(e => {
+    if (
+      shPlayer.x < e.x + e.width/2 && shPlayer.x > e.x - e.width/2 &&
+      shPlayer.y < e.y + e.height/2 && shPlayer.y > e.y - e.height/2
+    ) {
+      triggerGameOver();
+    }
+  });
+
+  // 敵の弾
+  shEnemyBullets.forEach(b => {
+    let dx = shPlayer.x - b.x;
+    let dy = shPlayer.y - b.y;
+    if (Math.sqrt(dx*dx + dy*dy) < 15) { // プレイヤーの当たり判定は少し小さくする
+      triggerGameOver();
+    }
+  });
+  
+  // ボス接触
+  if (isBossFight && boss) {
+    if (
+      shPlayer.x < boss.x + boss.width/2 && shPlayer.x > boss.x - boss.width/2 &&
+      shPlayer.y < boss.y + boss.height/2 && shPlayer.y > boss.y - boss.height/2
+    ) {
+      triggerGameOver();
+    }
+  }
+
+  shExplosions.forEach(exp => { exp.radius += exp.speed; exp.life -= 0.05; });
+  shExplosions = shExplosions.filter(exp => exp.life > 0);
+}
+
+function triggerGameOver() {
+  if (isGameOver) return;
+  isGameOver = true;
+  isShooting = false; 
+  shake = 20;
+
+  // プレイヤー大破
+  for(let i=0; i<10; i++){
+    shExplosions.push({
+      x: shPlayer.x, y: shPlayer.y, radius: 10, speed: 3, life: 1.5, color: "#3498db"
+    });
+  }
+  
+  showOverlay("SYSTEM DESTROYED...\n\nTAP TO RESTART", 999999);
+}
+
+function drawShooter() {
+  ctx.save();
+  
+  if (shake > 0) {
+    ctx.translate(Math.random()*10-5, Math.random()*10-5);
+    shake--;
+  }
+
+  // 背景
+  ctx.fillStyle = "#000"; 
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // グラディウス風の地形（下部の岩山）
+  ctx.fillStyle = "#800000"; // 赤茶色
+  ctx.beginPath();
+  ctx.moveTo(0, canvas.height);
+  let terrainOffset = shStars[0] ? shStars[0].x * 0.5 : 0;
+  for(let i=0; i<=canvas.width + 50; i+=50) {
+    let worldX = i - (terrainOffset % 50);
+    let trueX = i - terrainOffset;
+    let ky = canvas.height - 20 - Math.abs(Math.sin(trueX * 0.01)) * 50 - Math.abs(Math.sin(trueX * 0.003)) * 80;
+    ctx.lineTo(worldX, ky);
+  }
+  ctx.lineTo(canvas.width, canvas.height);
+  ctx.fill();
+  // 草・苔レイヤー
+  ctx.fillStyle = "#27ae60";
+  ctx.fillRect(0, canvas.height - 15, canvas.width, 15);
+
+  // 星
+  shStars.forEach(s => {
+    ctx.fillStyle = s.color;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // 爆発
+  shExplosions.forEach(exp => {
+    ctx.beginPath();
+    ctx.arc(exp.x, exp.y, exp.radius, 0, Math.PI * 2);
+    ctx.fillStyle = exp.color;
+    ctx.globalAlpha = exp.life;
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+  });
+
+  // ボス
+  if (isBossFight && boss) {
+    ctx.save();
+    ctx.translate(boss.x, boss.y);
+    const bw = boss.width;
+    const bh = boss.height;
+
+    // 後部の推進器部分
+    ctx.fillStyle = "#7f8c8d";
+    ctx.fillRect(-bw/2, -bh/3, bw/4, bh/1.5);
+    ctx.fillStyle = "#e74c3c";
+    ctx.fillRect(-bw/2 - 20, -bh/6, 20, bh/3); // 巨大なエンジン火
+
+    // 本体メイン（緑みがかったグレー）
+    ctx.fillStyle = "#95a5a6";
+    ctx.beginPath();
+    ctx.moveTo(-bw/4, -bh/2.5);
+    ctx.lineTo(bw/2, -bh/8);
+    ctx.lineTo(bw/2, bh/8);
+    ctx.lineTo(-bw/4, bh/2.5);
+    ctx.fill();
+
+    // 上下のアーム装甲 (前方に伸びる)
+    ctx.fillStyle = "#5d6d7e";
+    // 上アーム
+    ctx.beginPath();
+    ctx.moveTo(-bw/4, -bh/2); ctx.lineTo(bw/2, -bh/2); ctx.lineTo(bw/2 + 40, -10); ctx.lineTo(-bw/4, -bh/4);
+    ctx.fill();
+    // 下アーム
+    ctx.beginPath();
+    ctx.moveTo(-bw/4, bh/2); ctx.lineTo(bw/2, bh/2); ctx.lineTo(bw/2 + 40, 10); ctx.lineTo(-bw/4, bh/4);
+    ctx.fill();
+
+    // コアを守る遮蔽板（四角いブロック）
+    ctx.fillStyle = "#ecf0f1";
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "#3498db";
+    ctx.fillRect(bw/4, -bh/6, 15, bh/3);
+
+    // 真ん中のエネルギーコア (巨大な青い球)
+    ctx.shadowBlur = 30;
+    ctx.fillStyle = "#2980b9";
+    ctx.beginPath();
+    ctx.arc(0, 0, 25, 0, Math.PI*2);
+    ctx.fill();
+    // コアのハイライト
+    ctx.fillStyle = "#00ffff";
+    ctx.beginPath();
+    ctx.arc(-5, -5, 10, 0, Math.PI*2);
+    ctx.fill();
+    
+    ctx.restore();
+  }
+
+  // ザコ敵 (UFO)
+  shEnemies.forEach(e => {
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    const s = e.width;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = e.color;
+
+    if (e.type === 0 || e.type === 2) {
+      // Zab (紫と金のザコ) 画像完全再現
+      ctx.fillStyle = "#8e44ad";
+      ctx.beginPath();
+      ctx.moveTo(-s/2, -s/4); ctx.lineTo(-s/4, -s/2); ctx.lineTo(s/4, -s/2); ctx.lineTo(s/2, -s/4);
+      ctx.lineTo(s/2, s/4); ctx.lineTo(s/4, s/2); ctx.lineTo(-s/4, s/2); ctx.lineTo(-s/2, s/4);
+      ctx.fill();
+      
+      ctx.fillStyle = "#bdc3c7";
+      ctx.fillRect(-s/2+4, -s/4+2, s-8, s/2-4);
+
+      ctx.fillStyle = "#000";
+      ctx.fillRect(-s/4, -s/4, s/2, s/2);
+
+      ctx.fillStyle = "#e67e22"; // 金色・オレンジ
+      ctx.fillRect(-s/6, -s/12, s/3, s/6); 
+      ctx.fillRect(-s/12, -s/6, s/6, s/3); 
+      ctx.fillStyle = "#fff"; 
+      ctx.fillRect(-s/16, -s/16, s/8, s/8);
+    } else if (e.type === 1) {
+      // Garun (紫のドーナツ) 
+      ctx.fillStyle = "#8e44ad";
+      ctx.beginPath();
+      ctx.arc(0, 0, s/2, 0, Math.PI*2);
+      ctx.fill();
+      // 内側の穴
+      ctx.fillStyle = "#000"; // 宇宙の黒に同化させる
+      ctx.beginPath();
+      ctx.arc(0, 0, s/4, 0, Math.PI*2);
+      ctx.fill();
+      // 内側の光沢
+      ctx.strokeStyle = "#9b59b6";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, s/3, 0, Math.PI*2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  });
+
+  // プレイヤーの弾（グラディウス風の青白く長いレーザー）
+  shBullets.forEach(b => {
+    ctx.fillStyle = "#a8e6cf"; 
+    ctx.shadowBlur = 5;
+    ctx.shadowColor = "#3498db";
+    ctx.fillRect(b.x - b.radius*2, b.y - 2, b.radius*4, 4);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(b.x - b.radius, b.y - 1, b.radius*2, 2);
+  });
+
+  // 敵の弾
+  shEnemyBullets.forEach(b => {
+    ctx.fillStyle = b.color;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = b.color;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.radius, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.shadowBlur = 0; // シャドウリセット
+
+  if (!isGameOver) {
+    drawSpaceship(shPlayer.x, shPlayer.y, shPlayer.width, shPlayer.height, true);
+  }
+
+  ctx.restore();
+}
+
+function restartShooter() {
+  if (loopCount === 0) {
+    loopCount = 1;
+    stageIndex = 5; 
+    gameState = "maze";
+    isGameOver = false;
+
+    document.getElementById("stageText").style.display = "block";
+    document.getElementById("scoreBoard").style.display = "none";
+    document.getElementById("bossHpContainer").style.display = "none";
+    document.getElementById("shootBtn").style.display = "none";
+    
+    const el = document.getElementById("overlayText");
+    el.style.opacity = 0;
+    el.style.display = "none";
+    clearTimeout(overlayTimeout1);
+    clearTimeout(overlayTimeout2);
+
+    loadStage();
+    return;
+  }
+
+  startShooterGame();
+  
+  const el = document.getElementById("overlayText");
+  el.style.opacity = 0;
+  el.style.display = "none";
+  clearTimeout(overlayTimeout1);
+  clearTimeout(overlayTimeout2);
+}
+
+// ----------------------------------------
+// エンディング
+// ----------------------------------------
+function startEndingRoll() {
+  document.getElementById("scoreBoard").style.display = "none";
+  const endDiv = document.getElementById("endingScreen");
+  const cr = document.getElementById("creditsBox");
+  endDiv.style.display = "block";
+  
+  cr.innerHTML = `
+    <h1>CONGRATULATIONS!!</h1>
+    <p>MISSION ACCOMPLISHED</p>
+    <br><br><br>
+    <p>- DIRECTOR -</p>
+    <p>YOU</p>
+    <br><br>
+    <p>- SYSTEM ARCHITECT -</p>
+    <p>AI ASSISTANT</p>
+    <br><br>
+    <p>- SPECIAL THANKS -</p>
+    <p>ALL PLAYERS</p>
+    <br><br><br><br>
+    <p>THANK YOU FOR PLAYING!</p>
+    <br><br>
+    <p>SCORE: ${shScore}</p>
+    <br><br><br><br>
+    <p>TAP TO RETURN TO TITLE</p>
+  `;
+}
+
+function drawEnding() {
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  
+  // 星が上に移動
+  shStars.forEach(s => {
+    s.y -= s.speed;
+    if (s.y < 0) {
+      s.y = canvas.height + 10;
+      s.x = Math.random() * canvas.width;
+    }
+    ctx.fillStyle = s.color;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  
+  endingTimer++;
+  const cr = document.getElementById("creditsBox");
+  let yPos = 100 - (endingTimer * 0.1);
+  if (yPos < -50) yPos = -50; // ストップさせる
+  cr.style.top = yPos + "%";
+}
+
+document.getElementById("endingScreen").addEventListener("click", () => {
+  if (endingTimer > 300) { // すぐ飛べないように
+    document.getElementById("endingScreen").style.display = "none";
+    document.getElementById("titleScreen").style.display = "flex";
+    gameState = "title";
+  }
+});
+
+
+// ----------------------------------------
+// 入力制御統合
+// ----------------------------------------
+const shootBtn = document.getElementById("shootBtn");
+shootBtn.addEventListener("touchstart", (e) => { e.preventDefault(); isShooting = true; });
+shootBtn.addEventListener("touchend", (e) => { e.preventDefault(); isShooting = false; });
+shootBtn.addEventListener("mousedown", (e) => { isShooting = true; });
+shootBtn.addEventListener("mouseup", (e) => { isShooting = false; });
+shootBtn.addEventListener("mouseleave", (e) => { isShooting = false; });
+
+let isTouching = false;
+let touchStartX = 0;
+let touchStartY = 0;
+let playerStartX = 0;
+let playerStartY = 0;
+
+canvas.addEventListener("touchstart", (e) => {
+  if (gameState === "title" || gameState === "ending") return;
+  e.preventDefault(); 
+  
+  if (gameState === "shooter" && isGameOver) {
+    restartShooter();
+    return;
+  }
+
+  const touch = e.changedTouches[0];
+  isTouching = true;
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+  
+  if (gameState === "shooter") {
+    playerStartX = shPlayer.x;
+    playerStartY = shPlayer.y;
+  }
+}, { passive: false });
+
+canvas.addEventListener("touchmove", (e) => {
+  if (gameState === "title" || gameState === "ending") return;
+  e.preventDefault();
+  if (!isTouching || isGameOver) return;
+  const touch = e.changedTouches[0];
+  const dx = touch.clientX - touchStartX;
+  const dy = touch.clientY - touchStartY;
+
+  if (gameState === "shooter") {
+    let targetX = playerStartX + dx;
+    let targetY = playerStartY + dy;
+    shPlayer.vx += (targetX - shPlayer.x) * 0.1;
+    shPlayer.vy += (targetY - shPlayer.y) * 0.1;
+  }
+}, { passive: false });
+
+canvas.addEventListener("touchend", (e) => {
+  if (gameState === "title" || gameState === "ending") return;
+  if (gameState === "maze" && !isMazeTransitioning) {
+    let dx = e.changedTouches[0].clientX - touchStartX;
+    let dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) < 20 && Math.abs(dy) < 20) {
+      isTouching = false;
+      return;
+    }
+    if (Math.abs(dx) > Math.abs(dy)) {
+      if (dx > 0) moveMaze(1,0);  
+      else moveMaze(-1,0);       
+    } else {
+      if (dy > 0) moveMaze(0,1); 
+      else moveMaze(0,-1);       
+    }
+  }
+  isTouching = false;
+});
+
+canvas.addEventListener("mousedown", (e) => {
+  if (gameState === "title" || gameState === "ending") return;
+  if (gameState === "shooter" && isGameOver) {
+    restartShooter();
+    return;
+  }
+
+  isTouching = true;
+  touchStartX = e.clientX;
+  touchStartY = e.clientY;
+  if (gameState === "shooter") {
+    playerStartX = shPlayer.x;
+    playerStartY = shPlayer.y;
+  }
+});
+canvas.addEventListener("mousemove", (e) => {
+  if (gameState === "title" || gameState === "ending") return;
+  if (!isTouching || isGameOver) return;
+  if (gameState === "shooter") {
+    const dx = e.clientX - touchStartX;
+    const dy = e.clientY - touchStartY;
+    let targetX = playerStartX + dx;
+    let targetY = playerStartY + dy;
+    shPlayer.vx += (targetX - shPlayer.x) * 0.1;
+    shPlayer.vy += (targetY - shPlayer.y) * 0.1;
+  }
+});
+canvas.addEventListener("mouseup", (e) => {
+  if (gameState === "title" || gameState === "ending") return;
+  if (gameState === "maze" && !isMazeTransitioning) {
+    let dx = e.clientX - touchStartX;
+    let dy = e.clientY - touchStartY;
+    if (Math.abs(dx) > 20 || Math.abs(dy) > 20) {
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 0) moveMaze(1,0); 
+        else moveMaze(-1,0);
+      } else {
+        if (dy > 0) moveMaze(0,1); 
+        else moveMaze(0,-1);
+      }
+    }
+  }
+  isTouching = false;
+});
+
+window.addEventListener("keydown", e => {
+  if (gameState === "title" || gameState === "ending") return;
+  if (gameState === "maze" && !isMazeTransitioning) {
+    if (e.key === "ArrowUp") moveMaze(0,-1);
+    if (e.key === "ArrowDown") moveMaze(0,1);
+    if (e.key === "ArrowLeft") moveMaze(-1,0);
+    if (e.key === "ArrowRight") moveMaze(1,0);
+  }
+
+  if (gameState === "shooter" && !isGameOver) {
+    const speed = 10;
+    // 飛行限界と速度適用
+    if (e.key === "ArrowUp") shPlayer.vy -= speed;
+    if (e.key === "ArrowDown") shPlayer.vy += speed;
+    if (e.key === "ArrowLeft") shPlayer.vx -= speed;
+    if (e.key === "ArrowRight") shPlayer.vx += speed;
+
+    if (e.key === " ") {
+      isShooting = true; 
+    }
+  }
+});
+
+window.addEventListener("keyup", e => {
+  if (gameState === "shooter") {
+    if (e.key === " ") {
+      isShooting = false;
+    }
+  }
+});
+
+window.addEventListener("resize", () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  if (gameState === "maze") calcMazeSize();
+});
+
+// ----------------------------------------
+// メインループ
+// ----------------------------------------
+function loop() {
+  if (gameState === "title") {
+    // タイトルのHTML UIが上にあるのでここでは何もしなくても良い
+  } else if (gameState === "maze") {
+    drawMaze();
+  } else if (gameState === "shooter") {
+    updateShooter();
+    drawShooter();
+  } else if (gameState === "ending") {
+    drawEnding();
+  }
+  requestAnimationFrame(loop);
+}
+
+// 初期化
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+loop();
+</script>
+
+</body>
+</html>
