@@ -259,6 +259,109 @@
 <canvas id="game"></canvas>
 
 <script>
+// ----------------------------------------
+// レトロサウンドエンジン (Web Audio API)
+// ----------------------------------------
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+let bgmInterval = null;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new AudioContext();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playTone(freq, type, duration, vol=0.1) {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function playShootSound() {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.1);
+  gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.1);
+}
+
+function playKillSound() {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.2);
+  gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.2);
+}
+
+function playDamageSound() {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.3);
+  gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.3);
+}
+
+function playClearSound() {
+  if (!audioCtx) return;
+  [440, 554, 659, 880].forEach((freq, i) => {
+    setTimeout(() => playTone(freq, 'square', 0.5, 0.1), i * 150);
+  });
+}
+
+function playBGM(type) {
+  if (!audioCtx) return;
+  stopBGM();
+  let tempo, melody;
+  if (type === "maze") {
+    tempo = 600;
+    melody = [220, 0, 207, 0, 196, 0];
+  } else if (type === "shooter") {
+    tempo = 150;
+    melody = [440, 440, 880, 0, 440, 659, 880, 0];
+  } else {
+    return;
+  }
+  let index = 0;
+  bgmInterval = setInterval(() => {
+    let freq = melody[index % melody.length];
+    if (freq > 0) playTone(freq, type === "shooter" ? 'square' : 'triangle', tempo/1000 * 0.8, 0.05);
+    index++;
+  }, tempo);
+}
+
+function stopBGM() {
+  if (bgmInterval) clearInterval(bgmInterval);
+}
+
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
@@ -591,6 +694,7 @@ function moveMaze(dx, dy) {
           return;
         }
 
+        playClearSound();
         showPraise(`ステージ ${stageIndex} クリア！`);
         setTimeout(() => { loadStage(); }, 1500);
         return;
@@ -608,6 +712,7 @@ function moveMaze(dx, dy) {
 // ==========================================
 // 横スクロールシューティング
 // ==========================================
+// ----------------------------------------
 let shPlayer, shBullets, shEnemies, shEnemyBullets, shExplosions, shStars;
 let shScore, shBaseSpeed;
 let isGameOver = false;
@@ -615,6 +720,7 @@ let isGameOver = false;
 // コンボ＆射撃
 let combo = 0;
 let comboTimer = 0;
+let comboDisplayTime = 0;
 let isShooting = false;
 let shootTimer = 0;
 
@@ -632,6 +738,8 @@ document.getElementById("startBtn").addEventListener("click", () => {
   gameState = "maze";
   stageIndex = 0;
   loopCount = 0;
+  initAudio();
+  playBGM("maze");
   loadStage();
   
   if (window.innerHeight > window.innerWidth) {
@@ -720,10 +828,13 @@ function startShooterGame() {
   shBaseSpeed = 3;
   combo = 0;
   comboTimer = 0;
+  comboDisplayTime = 0;
   shake = 0;
   
   updateScoreDisplay();
   updateUI();
+  
+  playBGM("shooter");
 
   shStars = [];
   for (let i = 0; i < 150; i++) {
@@ -845,6 +956,7 @@ function updateShooter() {
       y: shPlayer.y,
       radius: 6, speed: 20, color: "#00ffff"
     });
+    playShootSound();
     shootTimer = 6; 
   }
   if (shootTimer > 0) shootTimer--;
@@ -962,7 +1074,8 @@ function updateShooter() {
           shake = 5; 
           combo++;
           comboTimer = 60; 
-          if (combo >= 5) showOverlay(`+${(enemy.type+1)*10}\n${combo} COMBOS!`, 400);
+          comboDisplayTime = 30; // 固定表示用
+          playKillSound();
 
           shExplosions.push({
             x: enemy.x, y: enemy.y, radius: enemy.width/2, speed: 2, life: 1.0, color: enemy.color
@@ -988,6 +1101,7 @@ function updateShooter() {
       ) {
         bulletHit = true;
         boss.hp--;
+        playKillSound(); // 小さいダメージ音として流用
         shExplosions.push({
           x: bullet.x, y: bullet.y, radius: 8, speed: 1, life: 0.8, color: "#e74c3c"
         });
@@ -1036,6 +1150,9 @@ function triggerGameOver() {
   isGameOver = true;
   isShooting = false; 
   shake = 20;
+  playDamageSound();
+  stopBGM();
+  showOverlay("大破！\n\nタップして再スタート", 999999);
 
   // プレイヤー大破
   for(let i=0; i<10; i++){
