@@ -195,30 +195,30 @@
 
   /* 十字キーUI */
   #dpad {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
     z-index: 30;
     display: none;
     flex-direction: column;
     gap: 5px;
   }
   #dpad button {
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
     margin: 5px;
-    font-size: 32px;
+    font-size: 24px;
     font-weight: bold;
-    border-radius: 15px;
-    border: 4px solid rgba(255,255,255,0.5);
-    background: rgba(52, 152, 219, 0.7);
-    color: white;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255,255,255,0.6);
+    color: #2c3e50;
     touch-action: none;
     user-select: none;
     cursor: pointer;
   }
   #dpad button:active {
-    background: rgba(41, 128, 185, 0.9);
+    background: rgba(255,255,255,0.9);
     transform: scale(0.95);
   }
 </style>
@@ -430,10 +430,18 @@ function calcMazeSize() {
   if (gameState !== "maze") return;
   const rows = maze.length;
   const cols = maze[0].length;
-  cellSize = Math.floor(Math.min(window.innerWidth / cols, (window.innerHeight - 50) / rows));
+  let w = window.innerWidth;
+  let h = window.innerHeight;
+
+  if (w > h) {
+    cellSize = Math.floor((h - 20) / rows);
+  } else {
+    cellSize = Math.floor((w - 20) / cols);
+  }
+  
   canvas.width = cellSize * cols;
   canvas.height = cellSize * rows;
-  canvas.style.marginTop = Math.max(0, (window.innerHeight - canvas.height) / 2) + 'px';
+  canvas.style.marginTop = Math.max(0, (h - canvas.height) / 2) + 'px';
 }
 
 function drawChest(px, py, isCollected) {
@@ -622,6 +630,12 @@ document.getElementById("startBtn").addEventListener("click", () => {
   stageIndex = 0;
   loopCount = 0;
   loadStage();
+  
+  if (window.innerHeight > window.innerWidth) {
+    setTimeout(() => {
+      showOverlay("スマホを横にして遊んでね！", 3000);
+    }, 500);
+  }
 });
 
 function drawSpaceship(x, y, w, h, isPlayer) {
@@ -1429,7 +1443,6 @@ window.addEventListener("keydown", e => {
 
   if (gameState === "shooter" && !isGameOver) {
     const speed = 10;
-    // 飛行限界と速度適用
     if (e.key === "ArrowUp") shPlayer.vy -= speed;
     if (e.key === "ArrowDown") shPlayer.vy += speed;
     if (e.key === "ArrowLeft") shPlayer.vx -= speed;
@@ -1449,11 +1462,28 @@ window.addEventListener("keyup", e => {
   }
 });
 
-window.addEventListener("resize", () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  if (gameState === "maze") calcMazeSize();
-});
+function adjustUI() {
+  const dpad = document.getElementById("dpad");
+  if (window.innerWidth > window.innerHeight) {
+    dpad.style.bottom = "15px";
+    dpad.style.left = "20px";
+  } else {
+    dpad.style.bottom = "10px";
+    dpad.style.left = "10px";
+  }
+}
+
+function resizeAll() {
+  if (gameState === "maze") {
+    calcMazeSize();
+  } else if (gameState === "shooter") {
+    calcShooterSize();
+  }
+  adjustUI();
+}
+
+window.addEventListener("orientationchange", resizeAll);
+window.addEventListener("resize", resizeAll);
 
 // ----------------------------------------
 // 十字キーのコントロール
