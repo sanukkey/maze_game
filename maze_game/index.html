@@ -185,10 +185,14 @@
   #creditsBox {
     position: absolute;
     top: 100%;
+    left: 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 15px;
     text-align: center;
     font-family: 'Press Start 2P', cursive;
-    font-size: 16px;
-    line-height: 3;
+    font-size: 14px;
+    line-height: 2.5;
     color: #ffd700;
     text-shadow: 0 0 5px #ffd700;
   }
@@ -347,6 +351,9 @@ function playBGM(type) {
   } else if (type === "shooter") {
     tempo = 150;
     melody = [440, 440, 880, 0, 440, 659, 880, 0];
+  } else if (type === "ending") {
+    tempo = 250;
+    melody = [523, 659, 783, 1046, 783, 659, 523, 0];
   } else {
     return;
   }
@@ -683,6 +690,7 @@ function moveMaze(dx, dy) {
         stageIndex++;
 
         if (stageIndex === 5 && loopCount === 0) {
+          playClearSound();
           showOverlay("警告！\n敵領域に侵入！\n戦闘開始！", 2500);
           setTimeout(() => { startShooterGame(); }, 2500);
           return;
@@ -731,6 +739,8 @@ let shake = 0;
 let boss;
 let isBossFight = false;
 let endingTimer = 0;
+let isHardMode = false;
+let hardModeTriggered = false;
 
 document.getElementById("startBtn").addEventListener("click", () => {
   document.getElementById("titleScreen").style.display = "none";
@@ -862,14 +872,15 @@ function calcShooterSize() {
 
 function spawnBoss() {
   isBossFight = true;
+  let multiplier = isHardMode ? 2 : 1;
   boss = {
     x: canvas.width + 100,
     y: canvas.height / 2,
-    width: 150,
-    height: 250,
-    hp: 500,
-    maxHp: 500,
-    vy: 2,
+    width: 100,
+    height: 120,
+    hp: 500 * multiplier,
+    maxHp: 500 * multiplier,
+    vy: isHardMode ? 4 : 2,
     tick: 0
   };
   document.getElementById("bossHpContainer").style.display = "block";
@@ -887,10 +898,11 @@ function updateBoss() {
     
     // 拡散弾の発射！ (6方向)
     boss.tick++;
-    if (boss.tick % 80 === 0) {
+    let fireInterval = isHardMode ? 40 : 80;
+    if (boss.tick % fireInterval === 0) {
       for (let i = 0; i < 6; i++) {
         let angle = Math.PI - 0.5 + (i * 0.2); // 左方向へ扇状に
-        let speed = 6;
+        let speed = isHardMode ? 9 : 6;
         shEnemyBullets.push({
           x: boss.x - boss.width/2,
           y: boss.y,
@@ -913,6 +925,8 @@ function updateBoss() {
     updateScoreDisplay();
     isGameOver = true;
     shake = 30; // 大揺れ
+    playClearSound();
+    stopBGM();
     
     // ボスから大量の爆発
     for(let i=0; i<20; i++){
@@ -931,6 +945,8 @@ function updateBoss() {
     setTimeout(() => {
       gameState = "ending";
       endingTimer = 0;
+      hardModeTriggered = false;
+      playBGM("ending");
       startEndingRoll();
     }, 3000);
   }
@@ -983,9 +999,11 @@ function updateShooter() {
     updateBoss();
   } else if (!isBossFight) {
     // ザコ敵スポーン
-    // 初期2倍キャップ
     shBaseSpeed = Math.min(3 + (shScore * 0.05), 6); 
+    if (isHardMode) shBaseSpeed *= 2;
+
     let spawnRate = Math.min(0.02 + (shScore * 0.001), 0.08);
+    if (isHardMode) spawnRate *= 2;
 
     if (Math.random() < spawnRate) {
       let type = Math.floor(Math.random() * 3); // 0:高速, 1:波, 2:硬い重戦車
@@ -1036,7 +1054,8 @@ function updateShooter() {
     }
     
     // たまに弾を撃つ
-    if (Math.random() < 0.001) {
+    let bulletChance = isHardMode ? 0.003 : 0.001;
+    if (Math.random() < bulletChance) {
       let dx = shPlayer.x - e.x;
       let dy = shPlayer.y - e.y;
       let dist = Math.sqrt(dx*dx + dy*dy);
