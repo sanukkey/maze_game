@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>LABYRINTH & SHOOTER - ODYSSEY</title>
+<title>迷路＆シューティング 大ぼうけん！</title>
 <!-- 宇宙っぽさとゲームっぽさを出すためのフォント -->
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
@@ -231,8 +231,8 @@
 <body>
 
 <div id="titleScreen">
-  <h1>LABYRINTH<br>SHOOTER</h1>
-  <p>一筆書きの迷路を踏破し<br>巨大宇宙戦艦を打ち破れ！</p>
+  <h1>迷路＆シューティング<br>大ぼうけん！</h1>
+  <p>ぜんぶの宝箱をあつめて 迷路をぬけだそう！<br>どでかい うちゅうせんを やっつけろ！</p>
   <button id="startBtn">ゲームスタート</button>
 </div>
 
@@ -397,7 +397,7 @@ function showOverlay(text, duration=1000) {
 }
 
 function showPraise(text) {
-  const praises = ["すごい！", "ナイス！", "完璧！", "天才！", "お見事！"];
+  const praises = ["すごい！", "やったね！", "かんぺき！", "てんさい！", "かっこいい！"];
   const random = praises[Math.floor(Math.random() * praises.length)];
   showOverlay(random + "\n\n" + text, 1500);
 }
@@ -675,7 +675,7 @@ function moveMaze(dx, dy) {
         mazePlayer.x = nx;
         mazePlayer.y = ny;
       } else if (chest.num > currentStep + 1) {
-        showOverlay(`ちがうよ！\nまずは ${currentStep + 1} 番の宝箱を取ろう！`, 1000);
+        showOverlay(`ちがうよ！\nまずは ${currentStep + 1} ばんの 宝箱を とろう！`, 1000);
       } else {
         // すでに取った箱の上は歩ける
         mazePlayer.x = nx;
@@ -691,13 +691,13 @@ function moveMaze(dx, dy) {
 
         if (stageIndex === 5 && loopCount === 0) {
           playClearSound();
-          showOverlay("警告！\n敵領域に侵入！\n戦闘開始！", 2500);
+          showOverlay("ピンチ！\nてきが あらわれた！\nやっつけろ！", 2500);
           setTimeout(() => { startShooterGame(); }, 2500);
           return;
         }
 
         if (stageIndex === 10) {
-          showOverlay("警告！\n巨大戦艦反応！\n最終決戦！", 3000);
+          showOverlay("きんきゅうジタイ！\nでっかい てきが きたぞ！\nさいごの たたかいだ！", 3000);
           setTimeout(() => { startShooterGame(); }, 3000);
           return;
         }
@@ -707,7 +707,7 @@ function moveMaze(dx, dy) {
         setTimeout(() => { loadStage(); }, 1500);
         return;
       } else {
-        showOverlay("すべての宝箱を順番に回収しないと\n魔法陣は作動しないよ！", 1500);
+        showOverlay("ぜんぶの 宝箱を じゅんばんに あつめないと\nまほうじんは うごかないよ！", 1500);
       }
     } else {
       // 普通の床
@@ -754,7 +754,7 @@ document.getElementById("startBtn").addEventListener("click", () => {
   
   if (window.innerHeight > window.innerWidth) {
     setTimeout(() => {
-      showOverlay("スマホを横にして遊んでね！", 3000);
+      showOverlay("スマホをよこにして あそんでね！", 3000);
     }, 500);
   }
 });
@@ -884,7 +884,7 @@ function spawnBoss() {
     tick: 0
   };
   document.getElementById("bossHpContainer").style.display = "block";
-  showOverlay("WARNING!\nGIANT BATTLESHIP APPROACHING!", 3000);
+  showOverlay("きんきゅうジタイ！\nでっかい てきが きたぞ！", 3000);
 }
 
 function updateBoss() {
@@ -1171,7 +1171,7 @@ function triggerGameOver() {
   shake = 20;
   playDamageSound();
   stopBGM();
-  showOverlay("大破！\n\nタップして再スタート", 999999);
+  showOverlay("やられちゃった...\n\nタップして やりなおす", 999999);
 
   // プレイヤー大破
   for(let i=0; i<10; i++){
@@ -1180,7 +1180,7 @@ function triggerGameOver() {
     });
   }
   
-  showOverlay("SYSTEM DESTROYED...\n\nTAP TO RESTART", 999999);
+  showOverlay("やられちゃった...\n\nタップして やりなおす", 999999);
 }
 
 function drawShooter() {
@@ -1401,23 +1401,23 @@ function startEndingRoll() {
   endDiv.style.display = "block";
   
   cr.innerHTML = `
-    <h1>CONGRATULATIONS!!</h1>
-    <p>MISSION ACCOMPLISHED</p>
+    <h1>ゲームクリア!!</h1>
+    <p>うちゅうの へいわは まもられた！</p>
     <br><br><br>
-    <p>- DIRECTOR -</p>
-    <p>YOU</p>
+    <p>- ディレクター -</p>
+    <p>あなた</p>
     <br><br>
-    <p>- SYSTEM ARCHITECT -</p>
-    <p>AI ASSISTANT</p>
+    <p>- プログラマー -</p>
+    <p>AI エンジニア</p>
     <br><br>
-    <p>- SPECIAL THANKS -</p>
-    <p>ALL PLAYERS</p>
+    <p>- スペシャルサンクス -</p>
+    <p>あそんでくれた みんな</p>
     <br><br><br><br>
-    <p>THANK YOU FOR PLAYING!</p>
+    <p>あそんでくれて ありがとう！</p>
     <br><br>
-    <p>SCORE: ${shScore}</p>
+    <p>スコア: ${shScore}</p>
     <br><br><br><br>
-    <p>TAP TO RETURN TO TITLE</p>
+    <p>タップして タイトルへ</p>
   `;
 }
 
