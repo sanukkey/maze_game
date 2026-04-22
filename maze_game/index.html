@@ -507,7 +507,7 @@ let overlayTimeout1, overlayTimeout2;
 // 迷路ゲーム（完璧な一筆書きダンジョン）
 // ==========================================
 let stageIndex = 0;
-let maze, mazePlayer, goal, checkpoints;
+let maze, mazePlayer, goal, checkpoints, hints;
 let currentStep = 0;
 let cellSize;
 let isMazeTransitioning = false;
@@ -566,6 +566,17 @@ function loadStage() {
   let size = baseSizes[stageIndex] || 31;
   
   maze = generatePerfectMaze(size, size);
+  
+  // --- ループ作成（壁をランダムで壊して複数ルートを作成） ---
+  let loopsToMake = Math.floor(size / 3);
+  for (let i = 0; i < loopsToMake; i++) {
+    let bx = 2 + Math.floor(Math.random() * (size - 4));
+    let by = 2 + Math.floor(Math.random() * (size - 4));
+    if (maze[by][bx] === 1) {
+      maze[by][bx] = 0;
+    }
+  }
+
   mazePlayer = {x: 1, y: 1};
 
   // ゴールを最も遠い行き止まりに設定する（BFS）
@@ -615,16 +626,36 @@ function loadStage() {
   }
 
   // 宝箱を行き止まりにランダム配置
+  hints = [];
   if (numChests > 0) {
     deadEnds.sort(() => Math.random() - 0.5); // シャッフル
     for (let i = 0; i < numChests; i++) {
         if (deadEnds[i]) {
-            checkpoints.push({x: deadEnds[i].x, y: deadEnds[i].y, num: i + 1});
+            checkpoints.push({x: deadEnds[i].x, y: deadEnds[i].y, collected: false});
         } else {
             // 行き止まりが足りない場合のフォールバック
             let path = findSolutionPath(maze, mazePlayer, goal);
-            if(path.length > (i+1)*2) checkpoints.push({x: path[(i+1)*2].x, y: path[(i+1)*2].y, num: i + 1});
+            if(path.length > (i+1)*2) checkpoints.push({x: path[(i+1)*2].x, y: path[(i+1)*2].y, collected: false});
         }
+    }
+  }
+
+  // 残りの行き止まりにヒントを配置（間違いの意味を持たせる）
+  let numHints = Math.min(3, Math.max(0, deadEnds.length - numChests));
+  for (let i = 0; i < numHints; i++) {
+    let idx = numChests + i;
+    if (deadEnds[idx]) {
+      let hintTexts = [
+        "ここは いきどまり！\nまわりみち してね！",
+        "エネルギーは この さきには ないよ！\nもどろう！",
+        "あっちの みちを\nさがして みよう！",
+        "ふふふ… 残念！\nハズレの ルートだ！"
+      ];
+      hints.push({
+        x: deadEnds[idx].x, 
+        y: deadEnds[idx].y, 
+        text: hintTexts[Math.floor(Math.random() * hintTexts.length)]
+      });
     }
   }
 
@@ -658,8 +689,6 @@ function drawChest(px, py, isCollected) {
   
   ctx.save();
   ctx.translate(x + s/2, y + s/2);
-  
-  let num = checkpoints.find(c => c.x === px && c.y === py).num;
 
   if (isCollected) {
     // 開いた宝箱
@@ -677,12 +706,11 @@ function drawChest(px, py, isCollected) {
     ctx.lineWidth = 2;
     ctx.strokeRect(-s*0.4, -s*0.3, s*0.8, s*0.6);
     
-    // 鍵穴ではなく数字を表示！
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold " + (s*0.4) + "px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(num, 0, 0);
+    // 光るエネルギーコアを表示！
+    ctx.fillStyle = "#00ffff";
+    ctx.beginPath();
+    ctx.arc(0, 0, s*0.2, 0, Math.PI*2);
+    ctx.fill();
   }
   
   ctx.restore();
@@ -739,9 +767,26 @@ function drawMaze() {
 
   // 宝箱（チェックポイント）
   checkpoints.forEach(p => {
-    let collected = (p.num <= currentStep);
-    drawChest(p.x, p.y, collected);
+    drawChest(p.x, p.y, p.collected);
   });
+
+  // ヒントオブジェクトの描画
+  if (hints) {
+    hints.forEach(h => {
+      ctx.save();
+      ctx.translate(h.x * cellSize + cellSize/2, h.y * cellSize + cellSize/2);
+      ctx.fillStyle = "#f1c40f"; // 黄色いヒントマーク
+      ctx.beginPath();
+      ctx.arc(0, 0, cellSize*0.3, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = "#000";
+      ctx.font = "bold " + (cellSize*0.4) + "px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("?", 0, 0);
+      ctx.restore();
+    });
+  }
 
   // プレイヤー（パイロットのヘルメットとスーツ風）
   ctx.save();
@@ -777,19 +822,24 @@ function moveMaze(dx, dy) {
   const ny = mazePlayer.y + dy;
 
   if (maze[ny] && maze[ny][nx] === 0) {
+    // ヒントのチェック
+    let hint = hints ? hints.find(h => h.x === nx && h.y === ny) : null;
+    if (hint) {
+      showOverlay(hint.text, 2000);
+    }
+
     // 宝箱のチェック
     let chest = checkpoints.find(p => p.x === nx && p.y === ny);
     if (chest) {
-      if (chest.num === currentStep + 1) {
-        currentStep++;
+      if (!chest.collected) {
+        chest.collected = true;
+        currentStep++; // 集めた個数
         shake = 5; 
         mazePlayer.x = nx;
         mazePlayer.y = ny;
         playGetSound();
         let words = ["エネルギー ゲット！", "パワーアップ！", "チャージ よし！", "ナイス！"];
-        showOverlay(words[Math.floor(Math.random()*words.length)], 800);
-      } else if (chest.num > currentStep + 1) {
-        showOverlay(`ちがうよ！\nまずは ${currentStep + 1} ばんの エネルギーを あつめよう！`, 1000);
+        showOverlay(words[Math.floor(Math.random()*words.length)] + `\n(${currentStep}/${checkpoints.length})`, 800);
       } else {
         // すでに取った箱の上は歩ける
         mazePlayer.x = nx;
@@ -797,7 +847,7 @@ function moveMaze(dx, dy) {
       }
     } else if (nx === goal.x && ny === goal.y) {
       // ゴール到達判定
-      if (currentStep === checkpoints.length) {
+      if (currentStep >= checkpoints.length) {
         mazePlayer.x = nx;
         mazePlayer.y = ny;
         isMazeTransitioning = true;
@@ -821,7 +871,7 @@ function moveMaze(dx, dy) {
         setTimeout(() => { loadStage(); }, 1500);
         return;
       } else {
-        showOverlay("ぜんぶの エネルギーを じゅんばんに あつめないと\nつぎへ すすめないよ！", 1500);
+        showOverlay(`あと ${checkpoints.length - currentStep}この エネルギーを あつめないと\nつぎへ すすめないよ！`, 1500);
       }
     } else {
       // 普通の床
