@@ -226,6 +226,65 @@
     background: rgba(255,255,255,0.9);
     transform: scale(0.95);
   }
+  #eduBtn {
+    font-family: inherit;
+    margin-top: 20px;
+    padding: 10px 20px;
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid #00ffff;
+    color: #fff;
+    font-size: 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #eduBtn:active {
+    background: rgba(0, 255, 255, 0.3);
+    transform: scale(0.95);
+  }
+  #eduModal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(10, 20, 30, 0.95);
+    border: 2px solid #00ffff;
+    border-radius: 10px;
+    padding: 20px;
+    width: 80%;
+    max-width: 400px;
+    color: #fff;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    display: none;
+    z-index: 50;
+    text-align: left;
+    font-family: sans-serif;
+  }
+  #eduModal h2 {
+    text-align: center;
+    color: #00ffff;
+    font-size: 18px;
+    margin-top: 0;
+  }
+  #eduModal p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 15px;
+  }
+  #eduModal .edu-title {
+    font-weight: bold;
+    color: #ffd700;
+  }
+  #eduModalClose {
+    display: block;
+    margin: 20px auto 0;
+    padding: 10px 30px;
+    background: #000;
+    border: 1px solid #00ffff;
+    color: #00ffff;
+    border-radius: 5px;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -234,6 +293,18 @@
   <h1>迷路＆シューティング<br>大ぼうけん！</h1>
   <p>ぜんぶの宝箱をあつめて 迷路をぬけだそう！<br>どでかい うちゅうせんを やっつけろ！</p>
   <button id="startBtn">ゲームスタート</button>
+  <button id="eduBtn" onclick="showEducationInfo()">このゲームで みにつく力（ちから）</button>
+</div>
+
+<div id="eduModal">
+  <h2>【このゲームで みにつく力】</h2>
+  <div class="edu-title">① じゅんばんを かんがえる力</div>
+  <p>（論理的思考力：ろんりてきしこうりょく）<br>チェックポイントを どの順番でまわればいいか、さきをよむ練習になります。</p>
+  <div class="edu-title">② あきらめない力</div>
+  <p>（粘り強さ：ねばりづよさ）<br>むずかしい迷路も、自分で考えてゴールまでたどりつく自信がつきます。</p>
+  <div class="edu-title">③ ご褒美（ごほうび）のための集中力</div>
+  <p>迷路をクリアしたあとのシューティングをたのしみに、いまやるべきことに集中できます。</p>
+  <button id="eduModalClose" onclick="closeEducationInfo()">とじる</button>
 </div>
 
 <div id="stageText">ステージ 1</div>
@@ -263,6 +334,16 @@
 <canvas id="game"></canvas>
 
 <script>
+// ----------------------------------------
+// 教育用モーダル制御
+// ----------------------------------------
+function showEducationInfo() {
+  document.getElementById("eduModal").style.display = "block";
+}
+function closeEducationInfo() {
+  document.getElementById("eduModal").style.display = "none";
+}
+
 // ----------------------------------------
 // レトロサウンドエンジン (Web Audio API)
 // ----------------------------------------
@@ -341,13 +422,22 @@ function playClearSound() {
   });
 }
 
+function playGetSound() {
+  if (!audioCtx) return;
+  playTone(659, 'square', 0.1, 0.1);
+  setTimeout(() => playTone(880, 'square', 0.2, 0.1), 100);
+}
+
 function playBGM(type) {
   if (!audioCtx) return;
   stopBGM();
   let tempo, melody;
-  if (type === "maze") {
-    tempo = 600;
-    melody = [220, 0, 207, 0, 196, 0];
+  if (type === "title") {
+    tempo = 200;
+    melody = [523, 659, 783, 880, 783, 659, 0, 0];
+  } else if (type === "maze") {
+    tempo = 150;
+    melody = [330, 440, 494, 523, 494, 440, 330, 0];
   } else if (type === "shooter") {
     tempo = 150;
     melody = [440, 440, 880, 0, 440, 659, 880, 0];
@@ -368,6 +458,15 @@ function playBGM(type) {
 function stopBGM() {
   if (bgmInterval) clearInterval(bgmInterval);
 }
+
+let titleMusicPlayed = false;
+window.addEventListener("click", () => {
+  if (gameState === "title" && !titleMusicPlayed) {
+    initAudio();
+    playBGM("title");
+    titleMusicPlayed = true;
+  }
+});
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -535,6 +634,12 @@ function loadStage() {
   document.getElementById("stageText").innerText = "ステージ " + (stageIndex + 1);
   calcMazeSize();
   updateUI();
+
+  if (stageIndex === 0 && currentStep === 0) {
+    setTimeout(() => {
+      showOverlay("てきの うちゅうせんに\nせんにゅうしたぞ！", 2000);
+    }, 500);
+  }
 }
 
 function calcMazeSize() {
@@ -584,8 +689,8 @@ function drawChest(px, py, isCollected) {
 }
 
 function drawMaze() {
-  // ダンジョンのような暗い背景
-  ctx.fillStyle = "#0c0c0c";
+  // 宇宙船内部っぽい背景
+  ctx.fillStyle = "#1a1a2e";
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
   ctx.save();
@@ -601,30 +706,34 @@ function drawMaze() {
   for (let y = 0; y < maze.length; y++) {
     for (let x = 0; x < maze[0].length; x++) {
       if (maze[y][x] === 1) {
-        // 壁（石造りのブロックのような表現）
-        ctx.fillStyle = "#2c3e50";
+        // 壁（明るい水色のネオンや光るシルバー）
+        ctx.fillStyle = "#b0c4de";
         ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-        ctx.fillStyle = "#34495e";
-        ctx.fillRect(x * cellSize + 1, y * cellSize + 1, cellSize - 2, cellSize - 2);
+        ctx.fillStyle = "#00ffff";
+        ctx.fillRect(x * cellSize + 2, y * cellSize + 2, cellSize - 4, cellSize - 4);
       } else {
-        // 道（かすかに明るい床）
-        ctx.fillStyle = "#111";
+        // 道（うっすらラインが入った明るめの色）
+        ctx.fillStyle = "#2a2a4e";
         ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        // うっすらライン
+        ctx.strokeStyle = "rgba(0, 255, 255, 0.1)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
       }
     }
   }
 
-  // ゴール（魔法陣のような光るエフェクト）
+  // ゴール（光るエフェクト）
   let time = Date.now() / 300;
   ctx.save();
   ctx.translate(goal.x * cellSize + cellSize/2, goal.y * cellSize + cellSize/2);
   ctx.rotate(time);
   ctx.fillStyle = `rgba(0, 255, 255, ${0.5 + Math.sin(time)*0.3})`;
-  ctx.shadowBlur = 10;
+  ctx.shadowBlur = 20;
   ctx.shadowColor = "#00ffff";
   ctx.fillRect(-cellSize*0.3, -cellSize*0.3, cellSize*0.6, cellSize*0.6);
   ctx.rotate(-time * 2);
-  ctx.fillStyle = "#00ffff";
+  ctx.fillStyle = "#ffffff";
   ctx.fillRect(-cellSize*0.2, -cellSize*0.2, cellSize*0.4, cellSize*0.4);
   ctx.restore();
 
@@ -637,6 +746,8 @@ function drawMaze() {
   // プレイヤー（パイロットのヘルメットとスーツ風）
   ctx.save();
   ctx.translate(mazePlayer.x * cellSize + cellSize/2, mazePlayer.y * cellSize + cellSize/2);
+  ctx.shadowBlur = 15;
+  ctx.shadowColor = "#ffffff";
   
   // ヘルメット（白）
   ctx.fillStyle = "#fff";
@@ -674,8 +785,11 @@ function moveMaze(dx, dy) {
         shake = 5; 
         mazePlayer.x = nx;
         mazePlayer.y = ny;
+        playGetSound();
+        let words = ["エネルギー ゲット！", "パワーアップ！", "チャージ よし！", "ナイス！"];
+        showOverlay(words[Math.floor(Math.random()*words.length)], 800);
       } else if (chest.num > currentStep + 1) {
-        showOverlay(`ちがうよ！\nまずは ${currentStep + 1} ばんの 宝箱を とろう！`, 1000);
+        showOverlay(`ちがうよ！\nまずは ${currentStep + 1} ばんの エネルギーを あつめよう！`, 1000);
       } else {
         // すでに取った箱の上は歩ける
         mazePlayer.x = nx;
@@ -707,7 +821,7 @@ function moveMaze(dx, dy) {
         setTimeout(() => { loadStage(); }, 1500);
         return;
       } else {
-        showOverlay("ぜんぶの 宝箱を じゅんばんに あつめないと\nまほうじんは うごかないよ！", 1500);
+        showOverlay("ぜんぶの エネルギーを じゅんばんに あつめないと\nつぎへ すすめないよ！", 1500);
       }
     } else {
       // 普通の床
